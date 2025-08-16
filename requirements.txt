@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+langchain
+langchain-google-genai
+langchain-community  # <-- ADD THIS LINE
+langgraph
+duckduckgo-search
+aiohttp
+beautifulsoup4
+langchain-tavily
