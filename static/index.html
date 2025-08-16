@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Multi-Agent Workflow Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configure Tailwind CSS with custom theme settings
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'neon-blue': '#00D4FF',
+                        'neon-purple': '#8B5CF6',
+                        'dark-bg': '#0F0F23',
+                        'dark-card': '#1A1A2E',
+                        'dark-sidebar': '#16213E'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Import the Inter font for a modern look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Glow effects for interactive elements */
+        .glow-blue {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        .glow-purple {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+        
+        /* Animation for new chat messages */
+        .message-slide-in {
+            animation: slideInLeft 0.5s ease-out;
+        }
+        
+        /* Pulsing glow for the active progress stage */
+        .progress-glow {
+            animation: pulseGlow 2s infinite;
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+            }
+        }
+        
+        /* Custom styling for code and chart blocks */
+        .code-block {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+            border: 1px solid #3a3a5e;
+        }
+        
+        .chart-container {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%);
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-white min-h-screen">
+    <!-- Top Navigation Bar -->
+    <nav class="fixed top-0 left-0 right-0 bg-dark-card border-b border-gray-700 z-50 px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-gradient-to-r from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
+                    <span class="text-white font-bold text-sm">AI</span>
+                </div>
+                <h1 class="text-xl font-semibold text-white">AI Multi-Agent Workflow</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="w-8 h-8 bg-neon-purple rounded-full flex items-center justify-center cursor-pointer hover:glow-purple transition-all">
+                    <span class="text-white text-sm font-medium">U</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="pt-20 flex h-screen">
+        <!-- Left Sidebar for Agent Chat -->
+        <div class="w-80 bg-dark-sidebar border-r border-gray-700 flex flex-col">
+            <div class="p-4 border-b border-gray-700">
+                <h2 class="text-lg font-semibold text-neon-blue">Agent Communication</h2>
+                <p class="text-gray-400 text-sm">Live workflow discussion</p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-4" id="chatContainer">
+                <!-- Chat messages will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Main Dashboard Panel -->
+        <div class="flex-1 flex flex-col">
+            <!-- Workflow Progress Bar -->
+            <div class="bg-dark-card border-b border-gray-700 p-6">
+                <h3 class="text-lg font-semibold mb-4 text-white">Workflow Progress</h3>
+                <div class="flex items-center justify-between relative">
+                    <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-600 -translate-y-1/2"></div>
+                    <div class="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-neon-blue to-neon-purple transition-all duration-1000 -translate-y-1/2" id="progressLine" style="width: 0%"></div>
+                    
+                    <div class="flex items-center justify-between w-full relative z-10">
+                        <!-- STAGE 0: Planner -->
+                        <div class="flex flex-col items-center" id="stage-planner">
+                            <div class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2">
+                                <span class="text-white font-semibold">1</span>
+                            </div>
+                            <span class="text-sm font-medium text-gray-400">Planner</span>
+                        </div>
+                        
+                        <!-- STAGE 1: Researcher -->
+                        <div class="flex flex-col items-center" id="stage-researcher">
+                            <div class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2">
+                                <span class="text-white font-semibold">2</span>
+                            </div>
+                            <span class="text-sm font-medium text-gray-400">Research</span>
+                        </div>
+                        
+                        <!-- STAGE 2: Coder -->
+                        <div class="flex flex-col items-center" id="stage-coder">
+                            <div class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2">
+                                <span class="text-white font-semibold">3</span>
+                            </div>
+                            <span class="text-sm font-medium text-gray-400">Coding</span>
+                        </div>
+                        
+                        <!-- STAGE 3: Reporter -->
+                        <div class="flex flex-col items-center" id="stage-reporter">
+                            <div class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2">
+                                <span class="text-white font-semibold">4</span>
+                            </div>
+                            <span class="text-sm font-medium text-gray-400">Report</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="flex-1 p-6 overflow-y-auto pb-24">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Performance Analytics Card -->
+                    <div class="bg-dark-card rounded-lg p-6 border border-gray-700">
+                        <h4 class="text-lg font-semibold mb-4 text-white">Performance Analytics</h4>
+                        <div class="chart-container rounded-lg p-4 h-64 flex items-center justify-center" id="chartContainer">
+                            <div class="text-gray-400 text-center">
+                                <div class="text-4xl mb-2">📊</div>
+                                <div>Charts will appear here</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generated Code Card -->
+                    <div class="bg-dark-card rounded-lg p-6 border border-gray-700">
+                        <h4 class="text-lg font-semibold mb-4 text-white">Generated Code</h4>
+                        <div class="code-block rounded-lg p-4 h-64 overflow-y-auto" id="codeContainer">
+                            <div class="text-gray-400 text-center h-full flex items-center justify-center">
+                                <div>
+                                    <div class="text-4xl mb-2">💻</div>
+                                    <div>Code snippets will appear here</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Workflow Results & Metrics Card -->
+                    <div class="bg-dark-card rounded-lg p-6 border border-gray-700 lg:col-span-2">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-semibold text-white">Workflow Results</h4>
+                            <button id="downloadBtn" class="bg-gradient-to-r from-neon-blue to-neon-purple px-6 py-2 rounded-lg font-medium hover:glow-blue transition-all">
+                                Download Report
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="metricsContainer">
+                            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-gray-500 mb-1">--</div>
+                                <div class="text-sm text-gray-400">Accuracy Score</div>
+                            </div>
+                            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-gray-500 mb-1">--</div>
+                                <div class="text-sm text-gray-400">Processing Time</div>
+                            </div>
+                            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-gray-500 mb-1">--</div>
+                                <div class="text-sm text-gray-400">System Status</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fixed Bottom Input Bar -->
+    <div class="fixed bottom-0 left-80 right-0 bg-dark-card border-t border-gray-700 p-4 z-50">
+        <div class="flex space-x-4">
+            <input id="taskInput" type="text" placeholder="Enter a task, e.g., 'Research the stock price of NVDA and write a script to plot it.'"
+                   class="w-full bg-gray-700 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-neon-blue">
+            <button id="startBtn"
+                    class="bg-gradient-to-r from-neon-blue to-neon-purple px-8 py-3 rounded-lg font-semibold hover:glow-blue transition-all">
+                Start Workflow
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- WebSocket Connection and State Management ---
+        const taskInput = document.getElementById('taskInput');
+        const startBtn = document.getElementById('startBtn');
+        let socket;
+
+        function connect() {
+            // FIX: Dynamically set WebSocket protocol based on the page's protocol.
+            // This ensures it uses 'ws://' on http (local dev) and 'wss://' on https (production).
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
+
+            socket.onopen = function(event) {
+                console.log("WebSocket connection established.");
+                startBtn.disabled = false;
+                startBtn.textContent = "Start Workflow";
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                console.log("Received data:", data);
+
+                // Route incoming messages based on their type
+                switch (data.type) {
+                    case 'chat':
+                        const avatar = data.agent.substring(0, 1);
+                        const color = getAgentColor(data.agent);
+                        addChatMessage(data.agent, avatar, data.message, new Date().toLocaleTimeString(), color);
+                        break;
+                    case 'progress':
+                        updateProgressStage(data.stage);
+                        break;
+                    case 'code':
+                        updateCodeSnippet(data.code);
+                        break;
+                    case 'metrics':
+                        updateMetrics(data.accuracy, data.processingTime, data.systemStatus);
+                        break;
+                    case 'report_data':
+                        // This case handles the incoming report from the server
+                        triggerDownload(data.content, data.filename);
+                        break;
+                    case 'error':
+                        addChatMessage('System', 'S', `An error occurred: ${data.message}`, new Date().toLocaleTimeString(), 'bg-red-500');
+                        break;
+                }
+            };
+
+            socket.onclose = function(event) {
+                console.log("WebSocket connection closed. Reconnecting...");
+                startBtn.disabled = true;
+                startBtn.textContent = "Connecting...";
+                setTimeout(connect, 3000); // Attempt to reconnect every 3 seconds
+            };
+
+            socket.onerror = function(error) {
+                console.error("WebSocket error:", error);
+                socket.close();
+            };
+        }
+        
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', function() {
+            const task = taskInput.value;
+            if (task && socket && socket.readyState === WebSocket.OPEN) {
+                clearAllOutputs();
+                addChatMessage('User', 'U', task, new Date().toLocaleTimeString(), 'bg-green-500');
+                socket.send(task);
+                taskInput.value = '';
+            } else {
+                console.log("Cannot send task. Socket not open or task is empty.");
+            }
+        });
+        
+        taskInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                startBtn.click();
+            }
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            console.log('Requesting report from server...');
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                // Send a structured JSON message to request the report
+                socket.send(JSON.stringify({ type: 'get_report' }));
+            } else {
+                alert('Connection is not active. Please start a workflow first.');
+            }
+        });
+
+        // --- UI Update Functions ---
+        function getAgentColor(agentName) {
+            switch(agentName) {
+                case 'Planner': return 'bg-yellow-500';
+                case 'Researcher': return 'bg-blue-500';
+                case 'Coder': return 'bg-purple-500';
+                case 'Reporter': return 'bg-teal-500';
+                default: return 'bg-gray-500';
+            }
+        }
+        
+        function clearAllOutputs() {
+            clearChat();
+            updateProgressStage(-1); // Resets progress bar
+            updateCodeSnippet('');
+            updateMetrics('--', '--', 'Idle');
+            document.getElementById('chartContainer').innerHTML = `<div class="text-gray-400 text-center"><div class="text-4xl mb-2">📊</div><div>Charts will appear here</div></div>`;
+            document.getElementById('codeContainer').innerHTML = `<div class="text-gray-400 text-center h-full flex items-center justify-center"><div><div class="text-4xl mb-2">💻</div><div>Code snippets will appear here</div></div></div>`;
+        }
+
+        function addChatMessage(agentName, agentAvatar, message, timestamp, avatarColor = 'bg-blue-500') {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start space-x-3 message-slide-in';
+            let formattedMessage = escapeHtml(message);
+            formattedMessage = formattedMessage.replace(/```python\n([\s\S]*?)```/g, '<pre class="text-sm text-gray-300 p-2 bg-black bg-opacity-20 rounded-md my-2"><code>$1</code></pre>');
+
+            messageDiv.innerHTML = `
+                <div class="w-8 h-8 ${avatarColor} rounded-full flex items-center justify-center flex-shrink-0">
+                    <span class="text-white text-xs font-medium">${agentAvatar}</span>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="text-sm font-medium text-white">${agentName}</span>
+                        <span class="text-xs text-gray-400">${timestamp}</span>
+                    </div>
+                    <div class="bg-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200">${formattedMessage}</div>
+                </div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function updateProgressStage(activeStageIndex) {
+            // This array now matches the backend agents and updated HTML
+            const stages = ['planner', 'researcher', 'coder', 'reporter'];
+            
+            if (activeStageIndex < 0) {
+                const progressLine = document.getElementById('progressLine');
+                progressLine.style.width = '0%';
+            }
+
+            stages.forEach((stageId, index) => {
+                const stageElement = document.getElementById(`stage-${stageId}`);
+                if (!stageElement) return;
+
+                const circle = stageElement.querySelector('div');
+                const text = stageElement.querySelector('span:last-of-type');
+                const progressLine = document.getElementById('progressLine');
+                const progressWidth = activeStageIndex < 0 ? 0 : (index / (stages.length - 1)) * 100;
+
+                if (index <= activeStageIndex) {
+                    circle.className = 'w-12 h-12 rounded-full bg-neon-blue glow-blue flex items-center justify-center mb-2';
+                    text.className = 'text-sm font-medium text-neon-blue';
+                    if (index === activeStageIndex) {
+                        circle.classList.add('progress-glow');
+                        progressLine.style.width = progressWidth + '%';
+                    } else {
+                        circle.classList.remove('progress-glow');
+                    }
+                } else {
+                    circle.className = 'w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2';
+                    text.className = 'text-sm font-medium text-gray-400';
+                    circle.classList.remove('progress-glow');
+                }
+            });
+        }
+
+        function updateCodeSnippet(code) {
+            const codeContainer = document.getElementById('codeContainer');
+            codeContainer.innerHTML = `<pre class="text-sm text-gray-300 whitespace-pre-wrap"><code>${escapeHtml(code)}</code></pre>`;
+        }
+
+        function updateMetrics(accuracy, processingTime, systemStatus) {
+            const metricsContainer = document.getElementById('metricsContainer');
+            const statusColor = (systemStatus || '').toLowerCase() === 'complete' ? 'text-green-400' : 'text-red-500';
+            metricsContainer.innerHTML = `
+                <div class="bg-gray-800 rounded-lg p-4 text-center"><div class="text-2xl font-bold text-neon-blue mb-1">${accuracy}</div><div class="text-sm text-gray-400">Accuracy Score</div></div>
+                <div class="bg-gray-800 rounded-lg p-4 text-center"><div class="text-2xl font-bold text-neon-purple mb-1">${processingTime}</div><div class="text-sm text-gray-400">Processing Time</div></div>
+                <div class="bg-gray-800 rounded-lg p-4 text-center"><div class="text-2xl font-bold ${statusColor} mb-1">${systemStatus}</div><div class="text-sm text-gray-400">System Status</div></div>
+            `;
+        }
+
+        function clearChat() {
+            document.getElementById('chatContainer').innerHTML = '';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // This function creates a temporary link to trigger the file download
+        function triggerDownload(content, filename = 'ai-report.md') {
+            const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+        
+        // --- Initial Connection ---
+        connect();
+    </script>
+</body>
+</html>
