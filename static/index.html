@@ -7,7 +7,7 @@
   <title>AI Multi-Agent Workflow Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    // Configure Tailwind CSS with a custom theme for a futuristic, neon look
+    // Configure Tailwind CSS
     tailwind.config = {
       theme: {
         extend: {
@@ -23,215 +23,192 @@
     }
   </script>
   <style>
-    /* Import the Inter font for a modern, clean typeface */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-    body {
-      font-family: 'Inter', sans-serif;
-    }
+    body { font-family: 'Inter', sans-serif; }
 
-    /* Glow effects for interactive UI elements */
-    .glow-blue {
-      box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
-    }
-
-    .glow-purple {
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-    }
-
-    /* Animation for new chat messages to slide in smoothly */
-    .message-slide-in {
-      animation: slideInLeft 0.5s ease-out;
-    }
-
-    /* Pulsing glow animation for the active progress stage */
-    .progress-glow {
-      animation: pulseGlow 2s infinite;
-    }
+    .glow-blue { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+    .glow-purple { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+    
+    .message-slide-in { animation: slideInLeft 0.5s ease-out; }
+    .progress-glow { animation: pulseGlow 2s infinite; }
+    .agent-active { border-color: #00D4FF; box-shadow: 0 0 15px rgba(0, 212, 255, 0.2); }
 
     @keyframes slideInLeft {
-      from {
-        opacity: 0;
-        transform: translateX(-20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
     }
 
     @keyframes pulseGlow {
-      0%,
-      100% {
-        box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
-      }
-
-      50% {
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
-      }
+      0%, 100% { box-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
+      50% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.8); }
     }
 
-    /* Custom styling for code and chart blocks */
-    .code-block {
-      background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
-      border: 1px solid #3a3a5e;
-    }
-
-    .chart-container {
-      background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%);
-    }
+    .code-block { background: #1e1e2e; border: 1px solid #3a3a5e; }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #16213E; }
+    ::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6B7280; }
   </style>
 </head>
 
-<body class="bg-dark-bg text-white min-h-screen">
+<body class="bg-dark-bg text-white min-h-screen overflow-hidden">
+  
+  <!-- Navbar -->
   <nav class="fixed top-0 left-0 right-0 bg-dark-card border-b border-gray-700 z-50 px-6 py-4">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-3">
-        <div
-          class="w-8 h-8 bg-gradient-to-r from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
+        <div class="w-8 h-8 bg-gradient-to-r from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
           <span class="text-white font-bold text-sm">AI</span>
         </div>
         <h1 class="text-xl font-semibold text-white">AI Multi-Agent Workflow</h1>
       </div>
-      <div class="flex items-center space-x-4">
-        <div
-          class="w-8 h-8 bg-neon-purple rounded-full flex items-center justify-center cursor-pointer hover:glow-purple transition-all">
-          <span class="text-white text-sm font-medium">U</span>
-        </div>
+      <div class="flex items-center space-x-2">
+        <div class="w-3 h-3 rounded-full bg-red-500" id="connectionStatus"></div>
+        <span class="text-xs text-gray-400" id="connectionText">Disconnected</span>
       </div>
     </div>
   </nav>
 
   <div class="pt-20 flex h-screen">
-    <div class="w-80 bg-dark-sidebar border-r border-gray-700 flex flex-col">
+    
+    <!-- Sidebar Chat -->
+    <div class="w-80 bg-dark-sidebar border-r border-gray-700 flex flex-col z-10">
       <div class="p-4 border-b border-gray-700">
-        <h2 class="text-lg font-semibold text-neon-blue">Agent Communication</h2>
-        <p class="text-gray-400 text-sm">Live workflow discussion</p>
+        <h2 class="text-lg font-semibold text-neon-blue">Live Logs</h2>
+        <p class="text-gray-400 text-sm">Agent interactions</p>
       </div>
       <div class="flex-1 overflow-y-auto p-4 space-y-4" id="chatContainer">
+        <!-- Messages go here -->
       </div>
     </div>
 
-    <div class="flex-1 flex flex-col">
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden relative">
+      
+      <!-- Progress Bar -->
       <div class="bg-dark-card border-b border-gray-700 p-6">
-        <h3 class="text-lg font-semibold mb-4 text-white">Workflow Progress</h3>
-        <div class="flex items-center justify-between relative">
-          <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-600 -translate-y-1/2"></div>
-          <div class="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-neon-blue to-neon-purple transition-all duration-1000 -translate-y-1/2"
-            id="progressLine" style="width: 0%"></div>
+        <div class="flex items-center justify-between relative max-w-4xl mx-auto">
+          <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-600 -translate-y-1/2 z-0"></div>
+          <div class="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-neon-blue to-neon-purple transition-all duration-1000 -translate-y-1/2 z-0" id="progressLine" style="width: 0%"></div>
 
           <div class="flex items-center justify-between w-full relative z-10">
             <div class="flex flex-col items-center" id="stage-planner">
-              <div class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2"><span
-                  class="text-white font-semibold">1</span></div>
-              <span class="text-sm font-medium text-gray-400">Planner</span>
+              <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center mb-2 transition-all duration-500 circle-bg">
+                <span class="text-white font-semibold text-sm">1</span>
+              </div>
+              <span class="text-xs font-medium text-gray-400">Planner</span>
             </div>
 
             <div class="flex flex-col items-center" id="stage-researcher">
-              <div class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2"><span
-                  class="text-white font-semibold">2</span></div>
-              <span class="text-sm font-medium text-gray-400">Research</span>
+              <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center mb-2 transition-all duration-500 circle-bg">
+                <span class="text-white font-semibold text-sm">2</span>
+              </div>
+              <span class="text-xs font-medium text-gray-400">Research</span>
             </div>
 
             <div class="flex flex-col items-center" id="stage-coder">
-              <div class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2"><span
-                  class="text-white font-semibold">3</span></div>
-              <span class="text-sm font-medium text-gray-400">Coding</span>
+              <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center mb-2 transition-all duration-500 circle-bg">
+                <span class="text-white font-semibold text-sm">3</span>
+              </div>
+              <span class="text-xs font-medium text-gray-400">Coding</span>
             </div>
 
             <div class="flex flex-col items-center" id="stage-reporter">
-              <div class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2"><span
-                  class="text-white font-semibold">4</span></div>
-              <span class="text-sm font-medium text-gray-400">Report</span>
+              <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center mb-2 transition-all duration-500 circle-bg">
+                <span class="text-white font-semibold text-sm">4</span>
+              </div>
+              <span class="text-xs font-medium text-gray-400">Report</span>
             </div>
           </div>
         </div>
       </div>
 
-
-      <div class="flex-1 p-6 overflow-y-auto pb-24">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div class="bg-dark-card rounded-lg p-6 border border-gray-700">
-            <h4 class="text-lg font-semibold mb-4 text-white">Performance Analytics</h4>
-            <div class="chart-container rounded-lg p-4 h-64 flex items-center justify-center" id="chartContainer">
-              <div class="text-gray-400 text-center">
-                <div class="text-4xl mb-2">📊</div>
-                <div>Charts will appear here</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-dark-card rounded-lg p-6 border border-gray-700">
-            <h4 class="text-lg font-semibold mb-4 text-white">Generated Code</h4>
-            <div class="code-block rounded-lg p-4 h-64 overflow-y-auto" id="codeContainer">
-              <div class="text-gray-400 text-center h-full flex items-center justify-center">
-                <div>
-                  <div class="text-4xl mb-2">💻</div>
-                  <div>Code snippets will appear here</div>
+      <!-- Content Area -->
+      <div class="flex-1 p-6 overflow-y-auto pb-24 space-y-6">
+        
+        <!-- Top Row: Code & Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Code Display -->
+          <div class="lg:col-span-2 bg-dark-card rounded-lg p-1 border border-gray-700 flex flex-col h-96">
+             <div class="bg-gray-800 px-4 py-2 rounded-t-lg flex justify-between items-center">
+                <span class="text-sm text-gray-300 font-mono">solution.py</span>
+                <div class="flex space-x-2">
+                   <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                   <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                   <div class="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
+             </div>
+            <div class="code-block flex-1 p-4 overflow-auto font-mono text-sm text-neon-blue" id="codeContainer">
+              <div class="text-gray-500 text-center h-full flex items-center justify-center italic">
+                Waiting for code generation...
               </div>
             </div>
           </div>
 
-          <div class="bg-dark-card rounded-lg p-6 border border-gray-700 lg:col-span-2">
-            <div class="flex items-center justify-between mb-4">
-              <h4 class="text-lg font-semibold text-white">Workflow Results</h4>
-              <button id="downloadBtn"
-                class="bg-gradient-to-r from-neon-blue to-neon-purple px-6 py-2 rounded-lg font-medium hover:glow-blue transition-all">Download
-                Report</button>
+          <!-- Metrics -->
+          <div class="bg-dark-card rounded-lg p-6 border border-gray-700 flex flex-col justify-between h-96">
+            <div>
+                <h4 class="text-lg font-semibold mb-4 text-white">Results</h4>
+                <div class="space-y-4" id="metricsContainer">
+                    <div class="bg-gray-800/50 p-3 rounded flex justify-between items-center">
+                        <span class="text-gray-400 text-sm">Status</span>
+                        <span class="text-yellow-400 font-mono">Pending</span>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded flex justify-between items-center">
+                        <span class="text-gray-400 text-sm">Accuracy</span>
+                        <span class="text-gray-500 font-mono">--</span>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded flex justify-between items-center">
+                        <span class="text-gray-400 text-sm">Time</span>
+                        <span class="text-gray-500 font-mono">--</span>
+                    </div>
+                </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="metricsContainer">
-              <div class="bg-gray-800 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-gray-500 mb-1">--</div>
-                <div class="text-sm text-gray-400">Accuracy Score</div>
-              </div>
-              <div class="bg-gray-800 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-gray-500 mb-1">--</div>
-                <div class="text-sm text-gray-400">Processing Time</div>
-              </div>
-              <div class="bg-gray-800 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-gray-500 mb-1">--</div>
-                <div class="text-sm text-gray-400">System Status</div>
-              </div>
-            </div>
+            <button id="downloadBtn" disabled class="w-full bg-gray-700 text-gray-400 cursor-not-allowed px-4 py-3 rounded-lg font-medium transition-all mt-4">
+                Download Report
+            </button>
           </div>
         </div>
 
-        <!-- Agent Status Overview Section -->
-        <div class="mt-8">
-          <h2 class="text-2xl font-bold mb-4 text-center text-neon-blue">Agent Status Overview</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-            <div id="agent-planner" class="bg-dark-card p-4 rounded-2xl shadow border border-gray-700">
-              <h2 class="text-xl font-semibold text-white">Planner Agent</h2>
-              <p>Status: <span class="agent-status text-yellow-400">Idle</span></p>
+        <!-- Agent Status Cards (Inferred from Progress) -->
+        <div>
+          <h2 class="text-xl font-bold mb-4 text-neon-blue">Agent Status</h2>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            
+            <div id="card-planner" class="bg-dark-card p-4 rounded-xl border border-gray-700 transition-all duration-300">
+              <div class="flex items-center justify-between mb-2">
+                  <h3 class="font-semibold text-white">Planner</h3>
+                  <div class="w-2 h-2 rounded-full bg-gray-500 status-dot"></div>
+              </div>
+              <p class="text-xs text-gray-400 status-text">Waiting...</p>
             </div>
 
-            <div id="agent-researcher" class="bg-dark-card p-4 rounded-2xl shadow border border-gray-700">
-              <h2 class="text-xl font-semibold text-white">Researcher Agent</h2>
-              <p>Status: <span class="agent-status text-yellow-400">Idle</span></p>
+            <div id="card-researcher" class="bg-dark-card p-4 rounded-xl border border-gray-700 transition-all duration-300">
+              <div class="flex items-center justify-between mb-2">
+                  <h3 class="font-semibold text-white">Researcher</h3>
+                  <div class="w-2 h-2 rounded-full bg-gray-500 status-dot"></div>
+              </div>
+              <p class="text-xs text-gray-400 status-text">Waiting...</p>
             </div>
 
-            <div id="agent-coder" class="bg-dark-card p-4 rounded-2xl shadow border border-gray-700">
-              <h2 class="text-xl font-semibold text-white">Coder Agent</h2>
-              <p>Status: <span class="agent-status text-yellow-400">Idle</span></p>
+            <div id="card-coder" class="bg-dark-card p-4 rounded-xl border border-gray-700 transition-all duration-300">
+              <div class="flex items-center justify-between mb-2">
+                  <h3 class="font-semibold text-white">Coder</h3>
+                  <div class="w-2 h-2 rounded-full bg-gray-500 status-dot"></div>
+              </div>
+              <p class="text-xs text-gray-400 status-text">Waiting...</p>
             </div>
 
-            <!-- New: Analytics Agent -->
-            <div id="agent-analyzer" class="bg-dark-card p-4 rounded-2xl shadow border border-gray-700">
-              <h2 class="text-xl font-semibold text-white">Analyzer Agent</h2>
-              <p>Status: <span class="agent-status text-blue-400">Idle</span></p>
-              <p class="text-sm mt-2 agent-output text-gray-300"></p>
-            </div>
-
-            <!-- New: Report Agent -->
-            <div id="agent-reporter" class="bg-dark-card p-4 rounded-2xl shadow border border-gray-700">
-              <h2 class="text-xl font-semibold text-white">Reporter Agent</h2>
-              <p>Status: <span class="agent-status text-purple-400">Idle</span></p>
-              <p class="text-sm mt-2 agent-output text-gray-300"></p>
-              <button class="mt-3 px-3 py-1 bg-purple-500 text-white rounded-lg hover:bg-purple-600">Download
-                Report</button>
+            <div id="card-reporter" class="bg-dark-card p-4 rounded-xl border border-gray-700 transition-all duration-300">
+              <div class="flex items-center justify-between mb-2">
+                  <h3 class="font-semibold text-white">Reporter</h3>
+                  <div class="w-2 h-2 rounded-full bg-gray-500 status-dot"></div>
+              </div>
+              <p class="text-xs text-gray-400 status-text">Waiting...</p>
             </div>
 
           </div>
@@ -240,265 +217,252 @@
     </div>
   </div>
 
+  <!-- Input Area -->
   <div class="fixed bottom-0 left-80 right-0 bg-dark-card border-t border-gray-700 p-4 z-50">
-    <div class="flex space-x-4">
+    <div class="flex space-x-4 max-w-5xl mx-auto">
       <input id="taskInput" type="text"
-        placeholder="Enter a task, e.g., 'Research the stock price of NVDA and write a script to plot it.'"
-        class="w-full bg-gray-700 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-neon-blue">
-      <button id="startBtn"
-        class="bg-gradient-to-r from-neon-blue to-neon-purple px-8 py-3 rounded-lg font-semibold hover:glow-blue transition-all">Start
-        Workflow</button>
+        placeholder="Enter a task (e.g., 'Research the history of the internet and write a python summary script')"
+        class="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-600 focus:outline-none focus:border-neon-blue transition-colors">
+      <button id="startBtn" disabled
+        class="bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-all whitespace-nowrap">
+        Connecting...
+      </button>
     </div>
   </div>
 
   <script>
-    // --- WebSocket Connection and State Management ---
     const taskInput = document.getElementById('taskInput');
     const startBtn = document.getElementById('startBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const connectionText = document.getElementById('connectionText');
+    
     let socket;
 
     function connect() {
-      // Dynamically set WebSocket protocol to work on both http (ws://) and https (wss://).
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
 
-      socket.onopen = function (event) {
-        console.log("WebSocket connection established.");
+      socket.onopen = () => {
+        console.log("Connected");
+        connectionStatus.className = "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]";
+        connectionText.textContent = "Connected";
         startBtn.disabled = false;
         startBtn.textContent = "Start Workflow";
+        startBtn.className = "bg-gradient-to-r from-neon-blue to-neon-purple px-8 py-3 rounded-lg font-semibold hover:glow-blue transition-all text-white whitespace-nowrap";
       };
 
-      socket.onmessage = function (event) {
+      socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log("Received data:", data);
-
-        // Route incoming messages to the appropriate UI update function
+        
         switch (data.type) {
           case 'chat':
-            const avatar = data.agent.substring(0, 1);
-            const color = getAgentColor(data.agent);
-            addChatMessage(data.agent, avatar, data.message, new Date().toLocaleTimeString(), color);
+            addChatMessage(data.agent, data.message);
             break;
           case 'progress':
-            updateProgressStage(data.stage);
+            updateProgress(data.stage); // Updates both bar AND cards
             break;
           case 'code':
-            updateCodeSnippet(data.code);
+            updateCode(data.code);
             break;
           case 'metrics':
-            updateMetrics(data.accuracy, data.processingTime, data.systemStatus);
+            updateMetrics(data);
             break;
           case 'report_data':
-            // This case handles receiving the final report from the server for download
             triggerDownload(data.content, data.filename);
             break;
           case 'error':
-            addChatMessage('System', 'S', `An error occurred: ${data.message}`, new Date().toLocaleTimeString(),
-              'bg-red-500');
-            break;
-          case 'agent_status':
-            updateAgentStatus(data.agent, data.status, data.color, data.output);
+            addChatMessage('System', `Error: ${data.message}`, 'red');
             break;
         }
       };
 
-      socket.onclose = function (event) {
-        console.log("WebSocket connection closed. Reconnecting...");
+      socket.onclose = () => {
+        console.log("Disconnected");
+        connectionStatus.className = "w-3 h-3 rounded-full bg-red-500";
+        connectionText.textContent = "Disconnected";
         startBtn.disabled = true;
-        startBtn.textContent = "Connecting...";
-        setTimeout(connect, 3000); // Attempt to reconnect every 3 seconds
-      };
-
-      socket.onerror = function (error) {
-        console.error("WebSocket error:", error);
-        socket.close(); // Triggers the onclose event for reconnection logic
+        startBtn.textContent = "Reconnecting...";
+        startBtn.className = "bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-all whitespace-nowrap";
+        setTimeout(connect, 3000);
       };
     }
 
-    // --- Event Listeners ---
-    startBtn.addEventListener('click', function () {
-      const task = taskInput.value.trim();
-      if (task && socket && socket.readyState === WebSocket.OPEN) {
-        clearAllOutputs();
-        addChatMessage('User', 'U', task, new Date().toLocaleTimeString(), 'bg-green-500');
-        socket.send(task); // Send the raw task string to the backend
+    // --- Logic ---
+
+    startBtn.addEventListener('click', sendMessage);
+    taskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    function sendMessage() {
+        const task = taskInput.value.trim();
+        if (!task || startBtn.disabled) return;
+        
+        resetUI();
+        addChatMessage('User', task, 'green');
+        socket.send(task);
         taskInput.value = '';
-      } else {
-        console.log("Cannot send task. Socket not open or task is empty.");
-      }
-    });
-
-    taskInput.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') {
-        startBtn.click();
-      }
-    });
-
-    document.getElementById('downloadBtn').addEventListener('click', function () {
-      console.log('Requesting report from server...');
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        // Send a structured JSON message to request the report
-        socket.send(JSON.stringify({
-          type: 'get_report'
-        }));
-      } else {
-        alert('Connection is not active. Please start a workflow first.');
-      }
-    });
-
-    // --- UI Update Functions ---
-    function getAgentColor(agentName) {
-      switch (agentName) {
-        case 'Planner':
-          return 'bg-yellow-500';
-        case 'Researcher':
-          return 'bg-blue-500';
-        case 'Coder':
-          return 'bg-purple-500';
-        case 'Reporter':
-          return 'bg-teal-500';
-        default:
-          return 'bg-gray-500';
-      }
     }
 
-    function clearAllOutputs() {
-      clearChat();
-      updateProgressStage(-1); // Reset progress bar to initial state
-      updateCodeSnippet('');
-      updateMetrics('--', '--', 'Idle');
-      document.getElementById('chartContainer').innerHTML =
-        `<div class="text-gray-400 text-center"><div class="text-4xl mb-2">📊</div><div>Charts will appear here</div></div>`;
-      document.getElementById('codeContainer').innerHTML =
-        `<div class="text-gray-400 text-center h-full flex items-center justify-center"><div><div class="text-4xl mb-2">💻</div><div>Code snippets will appear here</div></div></div>`;
-    }
-
-    function addChatMessage(agentName, agentAvatar, message, timestamp, avatarColor) {
-      const chatContainer = document.getElementById('chatContainer');
-      const messageDiv = document.createElement('div');
-      messageDiv.className = 'flex items-start space-x-3 message-slide-in';
-      let formattedMessage = escapeHtml(message);
-      // Basic markdown for code blocks
-      formattedMessage = formattedMessage.replace(/```python\n([\s\S]*?)```/g,
-        '<pre class="text-sm text-gray-300 p-2 bg-black bg-opacity-20 rounded-md my-2"><code>$1</code></pre>');
-
-      messageDiv.innerHTML = `
-                <div class="w-8 h-8 ${avatarColor} rounded-full flex items-center justify-center flex-shrink-0">
-                    <span class="text-white text-xs font-medium">${agentAvatar}</span>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center space-x-2 mb-1">
-                        <span class="text-sm font-medium text-white">${agentName}</span>
-                        <span class="text-xs text-gray-400">${timestamp}</span>
-                    </div>
-                    <div class="bg-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200">${formattedMessage}</div>
-                </div>
-            `;
-      chatContainer.appendChild(messageDiv);
-      chatContainer.scrollTop = chatContainer.scrollHeight; // Auto-scroll to the latest message
-    }
-
-    function updateProgressStage(activeStageIndex) {
-      const stages = ['planner', 'researcher', 'coder', 'reporter'];
-      const progressLine = document.getElementById('progressLine');
-
-      // Handle reset case
-      if (activeStageIndex < 0) {
-        progressLine.style.width = '0%';
-      }
-
-      stages.forEach((stageId, index) => {
-        const stageElement = document.getElementById(`stage-${stageId}`);
-        if (!stageElement) return;
-
-        const circle = stageElement.querySelector('div');
-        const text = stageElement.querySelector('span:last-of-type');
-
-        // Calculate progress width based on the *previous* stage completion
-        const progressWidth = activeStageIndex <= 0 ? 0 : ((activeStageIndex) / (stages.length - 1)) * 100;
-
-        if (index <= activeStageIndex) {
-          circle.className =
-            'w-12 h-12 rounded-full bg-neon-blue glow-blue flex items-center justify-center mb-2';
-          text.className = 'text-sm font-medium text-neon-blue';
-          if (index === activeStageIndex) {
-            circle.classList.add('progress-glow'); // Add glow to the current stage
-            progressLine.style.width = progressWidth + '%';
-          } else {
-            circle.classList.remove('progress-glow');
-          }
-        } else {
-          circle.className = 'w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2';
-          text.className = 'text-sm font-medium text-gray-400';
-          circle.classList.remove('progress-glow');
+    downloadBtn.addEventListener('click', () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'get_report' }));
         }
-      });
-      // Handle completion of the final stage
-      if (activeStageIndex >= stages.length - 1) {
-        progressLine.style.width = '100%';
-      }
+    });
+
+    // --- UI Updaters ---
+
+    function updateProgress(stageNum) {
+        // Backend sends 1, 2, 3, 4
+        // Stages array map: 0->Planner, 1->Research, 2->Coder, 3->Reporter
+        
+        const stages = ['planner', 'researcher', 'coder', 'reporter'];
+        const activeIndex = stageNum - 1; // Convert 1-based to 0-based
+        const progressLine = document.getElementById('progressLine');
+        
+        // 1. Update Top Bar
+        const width = (activeIndex / (stages.length - 1)) * 100;
+        progressLine.style.width = `${width}%`;
+
+        stages.forEach((stage, idx) => {
+            const el = document.getElementById(`stage-${stage}`);
+            const circle = el.querySelector('.circle-bg');
+            const text = el.querySelector('span'); // number inside
+
+            if (idx <= activeIndex) {
+                circle.className = "w-10 h-10 rounded-full bg-neon-blue glow-blue flex items-center justify-center mb-2 transition-all duration-500 circle-bg";
+                text.className = "text-black font-bold text-sm";
+                if (idx === activeIndex) {
+                    circle.classList.add('progress-glow');
+                } else {
+                    circle.classList.remove('progress-glow');
+                }
+            } else {
+                circle.className = "w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center mb-2 transition-all duration-500 circle-bg";
+                text.className = "text-white font-semibold text-sm";
+                circle.classList.remove('progress-glow');
+            }
+        });
+
+        // 2. Update Status Cards (Inference Logic)
+        stages.forEach((stage, idx) => {
+            const card = document.getElementById(`card-${stage}`);
+            const dot = card.querySelector('.status-dot');
+            const txt = card.querySelector('.status-text');
+
+            // Reset classes
+            card.classList.remove('agent-active', 'border-neon-blue', 'border-green-500', 'border-gray-700');
+            dot.classList.remove('bg-gray-500', 'bg-yellow-400', 'bg-green-500');
+
+            if (idx === activeIndex) {
+                // Currently working
+                card.classList.add('agent-active', 'border-neon-blue');
+                dot.classList.add('bg-yellow-400', 'animate-ping');
+                txt.textContent = "Working...";
+                txt.className = "text-xs text-yellow-400 status-text";
+            } else if (idx < activeIndex) {
+                // Done
+                card.classList.add('border-green-500'); // slight green border
+                dot.classList.add('bg-green-500');
+                dot.classList.remove('animate-ping');
+                txt.textContent = "Completed";
+                txt.className = "text-xs text-green-400 status-text";
+            } else {
+                // Waiting
+                card.classList.add('border-gray-700');
+                dot.classList.add('bg-gray-500');
+                dot.classList.remove('animate-ping');
+                txt.textContent = "Idle";
+                txt.className = "text-xs text-gray-400 status-text";
+            }
+        });
     }
 
-    function updateCodeSnippet(code) {
-      const codeContainer = document.getElementById('codeContainer');
-      // Securely display code by escaping HTML characters
-      codeContainer.innerHTML = `<pre class="text-sm text-gray-300 whitespace-pre-wrap"><code>${escapeHtml(code)}</code></pre>`;
+    function updateCode(code) {
+        const container = document.getElementById('codeContainer');
+        container.innerHTML = `<pre><code>${escapeHtml(code)}</code></pre>`;
     }
 
-    function updateMetrics(accuracy, processingTime, systemStatus) {
-      const metricsContainer = document.getElementById('metricsContainer');
-      const statusColor = (systemStatus || '').toLowerCase() === 'complete' ? 'text-green-400' : 'text-yellow-400';
-      metricsContainer.innerHTML = `
-                <div class="bg-gray-800 rounded-lg p-4 text-center"><div class="text-2xl font-bold text-neon-blue mb-1">${accuracy}</div><div class="text-sm text-gray-400">Accuracy Score</div></div>
-                <div class="bg-gray-800 rounded-lg p-4 text-center"><div class="text-2xl font-bold text-neon-purple mb-1">${processingTime}</div><div class="text-sm text-gray-400">Processing Time</div></div>
-                <div class="bg-gray-800 rounded-lg p-4 text-center"><div class="text-2xl font-bold ${statusColor} mb-1">${systemStatus}</div><div class="text-sm text-gray-400">System Status</div></div>
-            `;
+    function updateMetrics(data) {
+        const container = document.getElementById('metricsContainer');
+        const statusColor = (data.systemStatus || '').toLowerCase() === 'complete' ? 'text-green-400' : 'text-yellow-400';
+        
+        container.innerHTML = `
+            <div class="bg-gray-800/50 p-3 rounded flex justify-between items-center">
+                <span class="text-gray-400 text-sm">Status</span>
+                <span class="${statusColor} font-mono font-bold">${data.systemStatus}</span>
+            </div>
+            <div class="bg-gray-800/50 p-3 rounded flex justify-between items-center">
+                <span class="text-gray-400 text-sm">Accuracy</span>
+                <span class="text-neon-blue font-mono">${data.accuracy}</span>
+            </div>
+            <div class="bg-gray-800/50 p-3 rounded flex justify-between items-center">
+                <span class="text-gray-400 text-sm">Time</span>
+                <span class="text-neon-purple font-mono">${data.processingTime}</span>
+            </div>
+        `;
+        
+        if(data.systemStatus === 'Complete') {
+            downloadBtn.disabled = false;
+            downloadBtn.className = "w-full bg-gradient-to-r from-neon-blue to-neon-purple text-white hover:glow-blue px-4 py-3 rounded-lg font-medium transition-all mt-4";
+        }
     }
 
-    function clearChat() {
-      document.getElementById('chatContainer').innerHTML = '';
+    function addChatMessage(agent, msg, colorOverride=null) {
+        const container = document.getElementById('chatContainer');
+        const div = document.createElement('div');
+        div.className = 'message-slide-in bg-gray-800 p-3 rounded-lg border border-gray-700';
+        
+        let avatarColor = 'bg-gray-500';
+        if (agent === 'User') avatarColor = 'bg-green-500';
+        if (agent === 'Planner') avatarColor = 'bg-yellow-500';
+        if (agent === 'Researcher') avatarColor = 'bg-blue-500';
+        if (agent === 'Coder') avatarColor = 'bg-purple-500';
+        if (agent === 'Reporter') avatarColor = 'bg-teal-500';
+
+        // Format simple markdown code blocks
+        let formatted = escapeHtml(msg).replace(/```python([\s\S]*?)```/g, '<div class="bg-black/30 p-2 rounded mt-2 text-xs font-mono text-gray-300">$1</div>');
+
+        div.innerHTML = `
+            <div class="flex items-center space-x-2 mb-1">
+                <div class="w-5 h-5 rounded-full ${avatarColor} flex items-center justify-center text-[10px] font-bold text-white">
+                    ${agent[0]}
+                </div>
+                <span class="text-xs font-bold text-gray-300">${agent}</span>
+                <span class="text-[10px] text-gray-500 ml-auto">${new Date().toLocaleTimeString()}</span>
+            </div>
+            <div class="text-sm text-gray-200 pl-7">${formatted}</div>
+        `;
+        
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
     }
 
-    // Utility function to prevent XSS attacks by escaping HTML content
+    function resetUI() {
+        document.getElementById('chatContainer').innerHTML = '';
+        document.getElementById('codeContainer').innerHTML = '<div class="text-gray-500 text-center h-full flex items-center justify-center italic">Waiting for code generation...</div>';
+        updateProgress(0);
+        downloadBtn.disabled = true;
+        downloadBtn.className = "w-full bg-gray-700 text-gray-400 cursor-not-allowed px-4 py-3 rounded-lg font-medium transition-all mt-4";
+        updateMetrics({systemStatus: 'Pending', accuracy: '--', processingTime: '--'});
+    }
+
     function escapeHtml(text) {
-      if (!text) return '';
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+        if (!text) return '';
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    // Creates a temporary link to trigger a file download in the browser
-    function triggerDownload(content, filename = 'ai-report.md') {
-      const blob = new Blob([content], {
-        type: 'text/markdown;charset=utf-8'
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+    function triggerDownload(content, filename) {
+        const blob = new Blob([content], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 
-    function updateAgentStatus(agent, status, color, output = null) {
-      const agentCard = document.getElementById(`agent-${agent}`);
-      if (!agentCard) return;
-      const statusSpan = agentCard.querySelector('.agent-status');
-      statusSpan.textContent = status;
-      statusSpan.className = `agent-status ${color}`;
-      // If the agent has output (like Analytics), update it
-      if (output !== null) {
-        const outputP = agentCard.querySelector('.agent-output');
-        if (outputP) outputP.textContent = output;
-      }
-    }
-
-    // --- Initial Connection ---
     connect();
   </script>
 </body>
-
 </html>
