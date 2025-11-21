@@ -71,7 +71,7 @@ uvicorn main:app --reload
 # 📁 File Structure
 
 
-.
+```.
 ├── .env                 # API Keys (Not committed to Git)
 ├── main.py              # FastAPI entry point & WebSocket router
 ├── requirements.txt     # Python dependencies
@@ -81,6 +81,7 @@ uvicorn main:app --reload
     ├── __init__.py      # Package marker
     ├── Graph.py         # LangGraph definition & State Machine
     └── Tools.py         # Search tools configuration
+```
 # ⚙️ The Agentic Workflow
 Unlike simple linear chains, this project uses a Graph with conditional edges:
 
