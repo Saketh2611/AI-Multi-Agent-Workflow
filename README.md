@@ -1,110 +1,114 @@
-# AI Multi-Agent Workflow Dashboard
+# 🤖 AI Multi-Agent Workflow Dashboard
 
-This project is a real-time, web-based dashboard that allows users to input a task and watch a team of AI agents collaborate to solve it. The system uses a sophisticated agentic workflow built with LangChain and LangGraph, with a FastAPI backend for WebSocket communication and a vanilla HTML/JS frontend with Tailwind CSS for the user interface.
+This project is a real-time, web-based dashboard that visualizes a team of **Self-Correcting AI Agents** collaborating to solve complex tasks.
 
-## ✨ Features
+Built with **FastAPI**, **LangGraph**, and **Google Gemini**, this system demonstrates an "Agentic" workflow where agents don't just follow a straight line—they plan, research, check their own work, and loop back if necessary before writing code.
 
-- **Real-Time Collaboration**: Watch AI agents communicate and see their work in real-time through a live chat interface.
-- **Dynamic Workflow**: The system intelligently routes tasks to the appropriate agents, skipping unnecessary steps (e.g., research) to improve efficiency.
-- **Versatile Task Handling**: Capable of handling both knowledge-based questions (which are formatted into tables) and coding tasks (which generate Python scripts).
-- **Interactive UI**: A sleek, modern interface with a progress bar, code display, and final metrics.
-- **Downloadable Reports**: Users can download a complete markdown report of the entire workflow, including the plan, research, and final output.
+## ✨ Key Features
+
+- **🧠 Self-Healing Workflow**: The unique "Quality Check" node analyzes research results. If the data is insufficient, the system automatically loops back to the Planner to try a different strategy.
+- **🔄 Real-Time Visualization**: A futuristic, neon-styled dashboard (Tailwind CSS) that shows exactly which agent is working, what they are thinking, and their current status.
+- **🤝 Interactive WebSocket Stream**: Watch the agents chat, exchange data, and update progress bars in real-time without page reloads.
+- **🛠️ Robust Tooling**: Integrated with **Tavily Search** for high-accuracy web results and **Gemini 1.5 Flash** for fast reasoning.
+- **📄 Downloadable Reports**: One-click generation of a comprehensive Markdown report containing the plan, research citations, and generated code.
 
 ## 🏛️ Architecture Overview
 
-The application is composed of three main parts:
+The application follows a modern micro-architecture:
 
-1.  **Frontend**: A single `index.html` file styled with **Tailwind CSS**. It communicates with the backend over a WebSocket connection to send tasks and receive real-time updates.
-2.  **Backend**: A **FastAPI** server that manages WebSocket connections and serves the frontend. It acts as the bridge between the user and the agentic workflow.
-3.  **Agentic Workflow**: Built with **LangGraph**, this is the core of the application. It's a graph-based system where different AI agents (Planner, Researcher, Coder, etc.) are defined as "nodes." The system passes the task from one agent to the next, with conditional logic to decide the best path.
+1. **Frontend**: A single, responsive `index.html` using **Tailwind CSS**. It infers agent states via logic-driven UI updates based on WebSocket events.
+2. **Backend**: **FastAPI** handles the WebSocket lifecycle and serves static assets.
+3. **The Brain (LangGraph)**: A state machine defined in `agents/Graph.py`. It manages the state object (Task, Plan, Research, Code) as it passes between nodes.
 
 ## 🚀 Getting Started
 
-Follow these steps to get the project running on your local machine.
-
 ### Prerequisites
 
-- Python 3.8+
-- An active internet connection
+- Python 3.11+
+- [Google Gemini API Key](https://aistudio.google.com/)
+- [Tavily Search API Key](https://tavily.com/)
 
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
-cd <your-repository-name>
+git clone <your-repo-url>
+cd AI-Multi-Agent-Workflow
+2. Install Dependencies
+It is highly recommended to use a virtual environment.
 ```
 
-### 2. Install Dependencies
+```Bash
 
-It's recommended to use a virtual environment.
-
-```bash
-# Create and activate a virtual environment (optional but recommended)
+# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 
-# Install the required packages
+# Activate it
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# Install packages
 pip install -r requirements.txt
+3. Configure Environment Variables
 ```
-
-### 3. Configure Environment Variables
-
-Create a file named `.env` in the root directory of the project and add your API keys:
+# Create a file named .env in the root directory and paste your keys:
 
 ```
-GOOGLE_API_KEY="your_google_api_key_here"
-TAVILY_API_KEY="your_tavily_api_key_here"
+GOOGLE_API_KEY=your_google_key_here
+TAVILY_API_KEY=your_tavily_key_here
 ```
+# 4. Run the Application
+Start the server using Uvicorn. The app checks for the .env file on startup.
 
-### 4. Run the Application
+```Bash
 
-Start the FastAPI server using Uvicorn:
-
-```bash
 uvicorn main:app --reload
 ```
+# 5. Open the Dashboard
+# Navigate to http://127.0.0.1:8000 in your browser.
 
-The `--reload` flag will automatically restart the server whenever you make changes to the code.
+# 📁 File Structure
 
-### 5. Open the Dashboard
 
-Open your web browser and navigate to **http://127.0.0.1:8000**. You should see the AI Multi-Agent Workflow Dashboard.
-
-## 📁 File Structure
-
-```
 .
-├── .env                # Stores API keys and other secrets
-├── main.py             # The FastAPI backend server
-├── requirements.txt    # A list of all the Python dependencies
+├── .env                 # API Keys (Not committed to Git)
+├── main.py              # FastAPI entry point & WebSocket router
+├── requirements.txt     # Python dependencies
 ├── static/
-│   └── index.html      # The frontend user interface
-└── agents/
-    ├── __init__.py
-    ├── graph.py        # Defines the LangGraph agentic workflow
-    └── tools.py        # Configures external tools like web search
-```
+│   └── index.html       # Frontend Dashboard
+└── agents/              # Logic Package
+    ├── __init__.py      # Package marker
+    ├── Graph.py         # LangGraph definition & State Machine
+    └── Tools.py         # Search tools configuration
+# ⚙️ The Agentic Workflow
+Unlike simple linear chains, this project uses a Graph with conditional edges:
 
-## ⚙️ How It Works
+Planner Agent: Analyzes the user request. If a previous attempt failed, it reads the context and generates a new strategy.
 
-The agentic workflow in `agents/graph.py` is the core of this project. When a user submits a task, it goes through the following steps:
+Researcher Agent: Executes web searches using Tavily to gather live data.
 
-1.  **Planner**: The first agent creates a high-level, multi-step plan to address the user's request.
-2.  **Conditional Routing (Research)**: The system checks the plan for keywords like "research" or "explain."
-    - If found, the task is sent to the **Researcher**.
-    - If not, the research step is skipped to save time.
-3.  **Researcher**: If called, this agent uses the Tavily search tool to gather information from the web.
-4.  **Conditional Routing (Code or Format)**: After the research step (or if it was skipped), the system again checks the plan for keywords like "code" or "script."
-    - If found, the task is sent to the **Coder**.
-    - Otherwise, it's sent to the **Formatter**.
-5.  **Coder / Formatter**:
-    - The **Coder** writes a Python script.
-    - The **Formatter** organizes the research into a clean markdown table.
-6.  **Reporter**: The final agent gathers all the information from the previous steps (the plan, research, and either the code or the formatted data) and compiles a comprehensive final report, including mock performance metrics.
-7.  **Frontend Update**: Each step of this process sends real-time updates to the frontend via the WebSocket, allowing the user to watch the collaboration unfold.
+# ⚖️ Quality Check (Conditional Edge):
 
-## 🛠️ Technologies Used
+The system evaluates the research output.
 
-- **Backend**: FastAPI, Uvicorn, Python-dotenv
-- **AI & Machine Learning**: LangChain, LangGraph, Google Gemini, Tavily Search
-- **Frontend**: HTML, JavaScript, Tailwind CSS
+If Bad: It loops BACK to the Planner (increments revision count).
+
+If Good: It proceeds to the Coder.
+
+Safety: Max 3 loops allowed to prevent infinite costs.
+
+Coder Agent: Writes Python code based only on the verified research.
+
+Reporter Agent: Compiles the Task, Plan, Research, and Code into a final summary.
+
+# 🛠️ Tech Stack
+Orchestration: LangGraph
+
+LLM: Google Gemini 1.5 Flash
+
+Web Search: Tavily AI
+
+Backend: FastAPI, Uvicorn
+
+Frontend: HTML5, JavaScript, Tailwind CSS
