@@ -9,7 +9,7 @@ Built with **FastAPI**, **LangGraph**, and **Google Gemini**, this system demons
 - **🧠 Self-Healing Workflow**: The unique "Quality Check" node analyzes research results. If the data is insufficient, the system automatically loops back to the Planner to try a different strategy.
 - **🔄 Real-Time Visualization**: A futuristic, neon-styled dashboard (Tailwind CSS) that shows exactly which agent is working, what they are thinking, and their current status.
 - **🤝 Interactive WebSocket Stream**: Watch the agents chat, exchange data, and update progress bars in real-time without page reloads.
-- **🛠️ Robust Tooling**: Integrated with **Tavily Search** for high-accuracy web results and **Gemini 1.5 Flash** for fast reasoning.
+- **🛠️ Robust Tooling**: Integrated with **Tavily Search** for high-accuracy web results and **Gemini 2.5 Flash** for fast reasoning.
 - **📄 Downloadable Reports**: One-click generation of a comprehensive Markdown report containing the plan, research citations, and generated code.
 
 ## 🏛️ Architecture Overview
@@ -106,7 +106,7 @@ Reporter Agent: Compiles the Task, Plan, Research, and Code into a final summary
 # 🛠️ Tech Stack
 Orchestration: LangGraph
 
-LLM: Google Gemini 1.5 Flash
+LLM: Google Gemini 2.5 Flash
 
 Web Search: Tavily AI
 
