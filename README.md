@@ -10,7 +10,7 @@ Built with **FastAPI**, **LangGraph**, and **Google Gemini**, this system demons
 - **📄 Document Intelligence (RAG)**: Upload PDF documents directly. The system uses **FAISS** and **PostgreSQL** to vector-embed the content, allowing agents to "read" and cite your files.
 - **🔄 Real-Time Visualization**: A futuristic, neon-styled dashboard (Tailwind CSS) that shows exactly which agent is working, what they are thinking, and their current status.
 - **🤝 Interactive WebSocket Stream**: Watch the agents chat, exchange data, and update progress bars in real-time without page reloads.
-- **🛠️ Robust Tooling**: Integrated with **Tavily Search** for live web results and **Gemini 1.5 Flash** for high-speed reasoning.
+- **🛠️ Robust Tooling**: Integrated with **Tavily Search** for live web results and **Gemini 2.5 Flash** for high-speed reasoning.
 - **📄 Downloadable Reports**: One-click generation of a comprehensive Markdown report containing the plan, research citations, and generated code.
 
 ## 🏛️ Architecture Overview
@@ -110,7 +110,7 @@ Unlike simple linear chains, this project uses a Graph with conditional edges:
 ## 🛠️ Tech Stack
 
 - **Orchestration**: LangGraph
-- **LLM**: Google Gemini 1.5 Flash
+- **LLM**: Google Gemini 2.5 Flash
 - **Web Search**: Tavily AI
 - **Vector DB**: FAISS + PostgreSQL
 - **Backend**: FastAPI, Uvicorn
