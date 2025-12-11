@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 # --- FIX: Relative import because Tools.py is in the same folder ---
 from .tools import web_search
+from .tools import pdf_search
 
 load_dotenv()
 
@@ -42,12 +43,12 @@ planner_executor = AgentExecutor(agent=planner_agent, tools=[], verbose=True)
 
 # Researcher
 researcher_prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a Senior Researcher. Use the web_search tool to find info for the plan."),
+    ("system", "You are a Senior Researcher. Use the web_search tool to find info for the plan and pdf_search for information found inside uploaded PDFs."),
     ("human", "Task: {task}\nPlan: {plan}"),
     ("placeholder", "{agent_scratchpad}")
 ])
-research_agent = create_tool_calling_agent(llm, [web_search], researcher_prompt)
-research_executor = AgentExecutor(agent=research_agent, tools=[web_search], verbose=True)
+research_agent = create_tool_calling_agent(llm, [web_search,pdf_search], researcher_prompt)
+research_executor = AgentExecutor(agent=research_agent, tools=[web_search,pdf_search], verbose=True)
 
 # Coder
 coder_prompt = ChatPromptTemplate.from_messages([

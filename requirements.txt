@@ -1,11 +1,28 @@
 fastapi
 uvicorn[standard]
 python-dotenv
+
+# LangChain + Google Gemini
 langchain
 langchain-google-genai
-langchain-community  # <-- ADD THIS LINE
+langchain-community
+
+# Agents / Graphs
 langgraph
+
+# Web search tools
+langchain-tavily
 duckduckgo-search
 aiohttp
 beautifulsoup4
-langchain-tavily
+
+# Vector database + Embeddings
+faiss-cpu
+numpy
+
+# PDF processing
+PyPDF2
+langchain-text-splitters
+
+# Optional: If using Postgres / Neon
+psycopg2-binary

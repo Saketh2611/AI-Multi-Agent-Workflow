@@ -56,7 +56,6 @@
 
 <body class="bg-dark-bg text-white min-h-screen overflow-hidden">
   
-  <!-- Navbar -->
   <nav class="fixed top-0 left-0 right-0 bg-dark-card border-b border-gray-700 z-50 px-6 py-4">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-3">
@@ -74,21 +73,17 @@
 
   <div class="pt-20 flex h-screen">
     
-    <!-- Sidebar Chat -->
     <div class="w-80 bg-dark-sidebar border-r border-gray-700 flex flex-col z-10">
       <div class="p-4 border-b border-gray-700">
         <h2 class="text-lg font-semibold text-neon-blue">Live Logs</h2>
         <p class="text-gray-400 text-sm">Agent interactions</p>
       </div>
       <div class="flex-1 overflow-y-auto p-4 space-y-4" id="chatContainer">
-        <!-- Messages go here -->
-      </div>
+        </div>
     </div>
 
-    <!-- Main Content -->
     <div class="flex-1 flex flex-col overflow-hidden relative">
       
-      <!-- Progress Bar -->
       <div class="bg-dark-card border-b border-gray-700 p-6">
         <div class="flex items-center justify-between relative max-w-4xl mx-auto">
           <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-600 -translate-y-1/2 z-0"></div>
@@ -126,13 +121,8 @@
         </div>
       </div>
 
-      <!-- Content Area -->
-      <div class="flex-1 p-6 overflow-y-auto pb-24 space-y-6">
-        
-        <!-- Top Row: Code & Metrics -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="flex-1 p-6 overflow-y-auto pb-32 space-y-6"> <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          <!-- Code Display -->
           <div class="lg:col-span-2 bg-dark-card rounded-lg p-1 border border-gray-700 flex flex-col h-96">
              <div class="bg-gray-800 px-4 py-2 rounded-t-lg flex justify-between items-center">
                 <span class="text-sm text-gray-300 font-mono">solution.py</span>
@@ -149,7 +139,6 @@
             </div>
           </div>
 
-          <!-- Metrics -->
           <div class="bg-dark-card rounded-lg p-6 border border-gray-700 flex flex-col justify-between h-96">
             <div>
                 <h4 class="text-lg font-semibold mb-4 text-white">Results</h4>
@@ -174,7 +163,6 @@
           </div>
         </div>
 
-        <!-- Agent Status Cards (Inferred from Progress) -->
         <div>
           <h2 class="text-xl font-bold mb-4 text-neon-blue">Agent Status</h2>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -217,14 +205,20 @@
     </div>
   </div>
 
-  <!-- Input Area -->
   <div class="fixed bottom-0 left-80 right-0 bg-dark-card border-t border-gray-700 p-4 z-50">
-    <div class="flex space-x-4 max-w-5xl mx-auto">
-      <input id="taskInput" type="text"
-        placeholder="Enter a task (e.g., 'Research the history of the internet and write a python summary script')"
-        class="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-600 focus:outline-none focus:border-neon-blue transition-colors">
-      <button id="startBtn" disabled
-        class="bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-all whitespace-nowrap">
+    <div class="flex space-x-4 max-w-5xl mx-auto items-center">
+      
+      <label class="cursor-pointer bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg border border-gray-600 transition-colors flex items-center justify-center h-[50px] w-[50px]">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+        <input type="file" id="pdfInput" class="hidden" accept=".pdf" />
+      </label>
+
+      <input id="taskInput" type="text" 
+        placeholder="Enter a task (e.g., 'Analyze the PDF and write a python summary script')" 
+        class="flex-1 bg-gray-900 text-white rounded-lg px-4 py-3 border border-gray-600 focus:outline-none focus:border-neon-blue transition-colors h-[50px]">
+      
+      <button id="startBtn" disabled 
+        class="bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-all whitespace-nowrap h-[50px] flex items-center justify-center">
         Connecting...
       </button>
     </div>
@@ -236,6 +230,7 @@
     const downloadBtn = document.getElementById('downloadBtn');
     const connectionStatus = document.getElementById('connectionStatus');
     const connectionText = document.getElementById('connectionText');
+    const pdfInput = document.getElementById('pdfInput'); // Added ref
     
     let socket;
 
@@ -249,7 +244,7 @@
         connectionText.textContent = "Connected";
         startBtn.disabled = false;
         startBtn.textContent = "Start Workflow";
-        startBtn.className = "bg-gradient-to-r from-neon-blue to-neon-purple px-8 py-3 rounded-lg font-semibold hover:glow-blue transition-all text-white whitespace-nowrap";
+        startBtn.className = "bg-gradient-to-r from-neon-blue to-neon-purple px-8 py-3 rounded-lg font-semibold hover:glow-blue transition-all text-white whitespace-nowrap h-[50px]";
       };
 
       socket.onmessage = (event) => {
@@ -260,7 +255,7 @@
             addChatMessage(data.agent, data.message);
             break;
           case 'progress':
-            updateProgress(data.stage); // Updates both bar AND cards
+            updateProgress(data.stage); 
             break;
           case 'code':
             updateCode(data.code);
@@ -283,10 +278,35 @@
         connectionText.textContent = "Disconnected";
         startBtn.disabled = true;
         startBtn.textContent = "Reconnecting...";
-        startBtn.className = "bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-all whitespace-nowrap";
+        startBtn.className = "bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-all whitespace-nowrap h-[50px] flex items-center justify-center";
         setTimeout(connect, 3000);
       };
     }
+
+    // --- PDF Upload Logic (ADDED) ---
+    pdfInput.addEventListener("change", async () => {
+      const file = pdfInput.files[0];
+      if (!file) return;
+
+      addChatMessage("User", `📄 Uploaded PDF: ${file.name}`);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("/upload_pdf", { method: "POST", body: formData });
+        const data = await res.json();
+
+        if (data.error) {
+          addChatMessage("System", `❌ PDF Upload Failed: ${data.error}`);
+        } else {
+          addChatMessage("System", `✅ PDF processed successfully. Chunks stored: ${data.chunks}`);
+        }
+      } catch (err) {
+        addChatMessage("System", `❌ PDF Upload Error: ${err.message}`);
+      }
+    });
+
 
     // --- Logic ---
 
@@ -299,7 +319,8 @@
         
         resetUI();
         addChatMessage('User', task, 'green');
-        socket.send(task);
+        // Sending as JSON object to be safe/extensible
+        socket.send(JSON.stringify({ type: "start", task: task })); 
         taskInput.value = '';
     }
 
@@ -312,21 +333,17 @@
     // --- UI Updaters ---
 
     function updateProgress(stageNum) {
-        // Backend sends 1, 2, 3, 4
-        // Stages array map: 0->Planner, 1->Research, 2->Coder, 3->Reporter
-        
         const stages = ['planner', 'researcher', 'coder', 'reporter'];
-        const activeIndex = stageNum - 1; // Convert 1-based to 0-based
+        const activeIndex = stageNum - 1; 
         const progressLine = document.getElementById('progressLine');
         
-        // 1. Update Top Bar
         const width = (activeIndex / (stages.length - 1)) * 100;
         progressLine.style.width = `${width}%`;
 
         stages.forEach((stage, idx) => {
             const el = document.getElementById(`stage-${stage}`);
             const circle = el.querySelector('.circle-bg');
-            const text = el.querySelector('span'); // number inside
+            const text = el.querySelector('span');
 
             if (idx <= activeIndex) {
                 circle.className = "w-10 h-10 rounded-full bg-neon-blue glow-blue flex items-center justify-center mb-2 transition-all duration-500 circle-bg";
@@ -343,31 +360,26 @@
             }
         });
 
-        // 2. Update Status Cards (Inference Logic)
         stages.forEach((stage, idx) => {
             const card = document.getElementById(`card-${stage}`);
             const dot = card.querySelector('.status-dot');
             const txt = card.querySelector('.status-text');
 
-            // Reset classes
             card.classList.remove('agent-active', 'border-neon-blue', 'border-green-500', 'border-gray-700');
             dot.classList.remove('bg-gray-500', 'bg-yellow-400', 'bg-green-500');
 
             if (idx === activeIndex) {
-                // Currently working
                 card.classList.add('agent-active', 'border-neon-blue');
                 dot.classList.add('bg-yellow-400', 'animate-ping');
                 txt.textContent = "Working...";
                 txt.className = "text-xs text-yellow-400 status-text";
             } else if (idx < activeIndex) {
-                // Done
-                card.classList.add('border-green-500'); // slight green border
+                card.classList.add('border-green-500'); 
                 dot.classList.add('bg-green-500');
                 dot.classList.remove('animate-ping');
                 txt.textContent = "Completed";
                 txt.className = "text-xs text-green-400 status-text";
             } else {
-                // Waiting
                 card.classList.add('border-gray-700');
                 dot.classList.add('bg-gray-500');
                 dot.classList.remove('animate-ping');
@@ -419,7 +431,6 @@
         if (agent === 'Coder') avatarColor = 'bg-purple-500';
         if (agent === 'Reporter') avatarColor = 'bg-teal-500';
 
-        // Format simple markdown code blocks
         let formatted = escapeHtml(msg).replace(/```python([\s\S]*?)```/g, '<div class="bg-black/30 p-2 rounded mt-2 text-xs font-mono text-gray-300">$1</div>');
 
         div.innerHTML = `

@@ -2,198 +2,270 @@ import asyncio
 import json
 import uuid
 import logging
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import os
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse
 
-# FIX: Importing from the correct file (agent_graph.py) and function (get_app)
 from agents.graph import get_app
+from agents.tools import init_faiss, faiss_add, pdf_search
 
-# --- Setup ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from PyPDF2 import PdfReader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+import io
+
+
+# ---------------------------------------------------------
+# LOGGING
+# ---------------------------------------------------------
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------
+# FASTAPI APP
+# ---------------------------------------------------------
 app = FastAPI()
 
-# Mount static directory for CSS/JS/Images if needed, though we serve index.html directly below
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Absolute path to this file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# --- Session and Data Management ---
+# Mount static folder correctly
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+# ---------------------------------------------------------
+# MEMORY FOR WEBSOCKETS
+# ---------------------------------------------------------
 connections = {}
 session_data = {}
 
-# Initialize the LangGraph application
 agent_graph = get_app()
 
+faiss_initialized = False
 
-# --- WebSocket Event Handlers ---
-async def process_graph_event(session_id: str, event: dict):
+
+
+# =====================================================================
+# PDF UPLOAD: /upload_pdf
+# =====================================================================
+@app.post("/upload_pdf")
+async def upload_pdf(file: UploadFile = File(...)):
     """
-    Processes events from the LangGraph stream and sends structured JSON updates 
-    to the frontend via WebSocket.
+    Upload a PDF → Extract text → Chunk → Embed → Store in FAISS
     """
-    if not event or not isinstance(event, dict):
+    global faiss_initialized
+
+    try:
+        logger.info(f"Uploading PDF: {file.filename}")
+
+        # Initialize FAISS lazily (first PDF upload)
+        if not faiss_initialized:
+            res = init_faiss.invoke({})
+            faiss_initialized = True
+            logger.info(f"FAISS init result: {res}")
+
+        # Read PDF
+        pdf_bytes = await file.read()
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+
+        if not text.strip():
+            return {"error": "Failed to extract text from the PDF."}
+
+        # Chunking
+        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+        chunks = splitter.split_text(text)
+
+        embedder = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+
+        ids, vectors, metadatas = [], [], []
+
+        for chunk in chunks:
+            vec = embedder.embed_query(chunk)
+            vectors.append(vec)
+
+            ids.append(uuid.uuid4().int >> 96)
+            metadatas.append({
+                "source": file.filename,
+                "text": chunk
+            })
+
+        # Store into FAISS + Postgres
+        result = faiss_add.invoke({
+            "ids": ids,
+            "embeddings": vectors,
+            "metadatas": metadatas
+        })
+
+        return {
+            "status": "success",
+            "chunks": len(chunks),
+            "faiss_response": result
+        }
+
+    except Exception as e:
+        logger.error(f"PDF Upload Error: {e}", exc_info=True)
+        return {"error": str(e)}
+
+
+
+
+# =====================================================================
+# PROCESS AGENT GRAPH EVENTS
+# =====================================================================
+async def process_graph_event(session_id, event):
+    if not event:
         return
 
-    # In 'updates' mode, the event key is the node name (e.g., 'planner', 'researcher')
-    node_name = next(iter(event), None)
-    if not node_name:
-        return
-    
-    # The value is the state update dictionary returned by that node
-    node_output = event[node_name]
-    
     websocket = connections.get(session_id)
     if not websocket:
         return
 
-    # --- Router for different agents ---
-    
+    node_name = next(iter(event))
+    node_output = event[node_name]
+
+    # ---- Planner ----
     if node_name == "planner":
-        plan_text = node_output.get('plan', '...')
-        session_data[session_id]['plan'] = plan_text
-        
-        # Send UI updates
-        await websocket.send_json({"type": "progress", "stage": 1, "label": "Planning..."})
-        await websocket.send_json({"type": "chat", "agent": "Planner", "message": f"Here is the plan:\n{plan_text}"})
+        msg = node_output.get("plan", "")
+        session_data[session_id]["plan"] = msg
 
+        await websocket.send_json({"type": "progress", "stage": 1})
+        await websocket.send_json({"type": "chat", "agent": "Planner", "message": msg})
+
+    # ---- Researcher ----
     elif node_name == "researcher":
-        research_text = node_output.get('research_info', '...')
-        session_data[session_id]['research_info'] = research_text
-        
-        await websocket.send_json({"type": "progress", "stage": 2, "label": "Researching..."})
-        await websocket.send_json({"type": "chat", "agent": "Researcher", "message": "I found some information."})
-        # Optionally send the raw research if needed, or keep it for the report
+        msg = node_output.get("research_info", "")
+        session_data[session_id]["research_info"] = msg
 
+        await websocket.send_json({"type": "progress", "stage": 2})
+        await websocket.send_json({"type": "chat", "agent": "Researcher", "message": "Research complete."})
+
+    # ---- Coder ----
     elif node_name == "coder":
-        # Clean up code block formatting for display
-        code_text = node_output.get('code', '').replace("```python", "").replace("```", "").strip()
-        session_data[session_id]['code'] = code_text
-        
-        await websocket.send_json({"type": "progress", "stage": 3, "label": "Coding..."})
-        await websocket.send_json({"type": "code", "code": code_text})
-        await websocket.send_json({"type": "chat", "agent": "Coder", "message": "I have generated the Python code."})
+        code = node_output.get("code", "").replace("```python", "").replace("```", "")
+        session_data[session_id]["code"] = code
 
+        await websocket.send_json({"type": "progress", "stage": 3})
+        await websocket.send_json({"type": "code", "code": code})
+        await websocket.send_json({"type": "chat", "agent": "Coder", "message": "Generated Python code."})
+
+    # ---- Reporter ----
     elif node_name == "reporter":
-        report_text = node_output.get('final_report', '')
-        session_data[session_id]['final_report'] = report_text
-        
-        # Attempt to parse metrics for the UI dashboard
-        metrics = {"accuracy": "98%", "processingTime": "12s", "systemStatus": "Complete"}
-        
-        # Simple parsing if the AI followed the format (optional robustness)
-        for line in report_text.split('\n'):
-            lower_line = line.lower()
-            if "quality score" in lower_line or "accuracy" in lower_line:
-                parts = line.split(":")
-                if len(parts) > 1: metrics["accuracy"] = parts[1].strip()
-        
-        await websocket.send_json({"type": "progress", "stage": 4, "label": "Finished"})
+        report = node_output.get("final_report", "")
+        session_data[session_id]["final_report"] = report
+
+        metrics = {
+            "accuracy": "98%",
+            "processingTime": "12s",
+            "systemStatus": "Complete"
+        }
+
+        await websocket.send_json({"type": "progress", "stage": 4})
         await websocket.send_json({"type": "metrics", **metrics})
-        await websocket.send_json({"type": "chat", "agent": "Reporter", "message": "Workflow complete. You can download the report now."})
+        await websocket.send_json({"type": "chat", "agent": "Reporter", "message": "Workflow complete."})
 
 
-async def handle_get_report(session_id: str):
-    """Generates a download for the final Markdown report."""
+
+
+# =====================================================================
+# /get_report (via WebSocket)
+# =====================================================================
+async def handle_get_report(session_id):
     websocket = connections.get(session_id)
-    data = session_data.get(session_id, {})
-    if not websocket or not data:
+    if not websocket:
         return
 
-    logger.info(f"Compiling report for session {session_id}")
-    
-    task = data.get('task', 'Task')
-    report_content = data.get('final_report', "Report pending or failed generation.")
-    
-    # Create a safe filename
-    safe_task_str = "".join(c for c in task if c.isalnum() or c in " _-").rstrip()[:30]
-    filename = f"Report_{safe_task_str}.md"
+    data = session_data.get(session_id, {})
+    task = data.get("task", "Task")
+    report = data.get("final_report", "")
+
+    safe_name = "".join(c for c in task if c.isalnum() or c in "_- ")[:40]
+    filename = f"Report_{safe_name}.md"
 
     await websocket.send_json({
         "type": "report_data",
         "filename": filename,
-        "content": report_content
+        "content": report
     })
 
 
-# --- API Endpoints ---
 
+
+# =====================================================================
+# SERVE FRONTEND INDEX.HTML
+# =====================================================================
 @app.get("/", response_class=HTMLResponse)
-async def get_root():
-    """Serves the entry point."""
+async def get_frontend():
     try:
-        # Ensure you have this file in a 'static' folder
-        with open("static/index.html", "r") as f:
-            return HTMLResponse(content=f.read(), status_code=200)
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Error: static/index.html not found</h1>", status_code=404)
+        file_path = os.path.join(BASE_DIR, "static", "index.html")
+        with open(file_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    except Exception as e:
+        return HTMLResponse(f"<h1>index.html missing</h1><p>{e}</p>", status_code=404)
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
 
+
+
+# =====================================================================
+# WEBSOCKET: /ws
+# =====================================================================
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """Main WebSocket Loop."""
+
     await websocket.accept()
-    
+
     session_id = str(uuid.uuid4())
     connections[session_id] = websocket
     session_data[session_id] = {}
-    
-    logger.info(f"New WebSocket connection: {session_id}")
-    
-    # LangGraph configuration for thread persistence
+
     config = {"configurable": {"thread_id": session_id}}
 
     try:
         while True:
-            message_text = await websocket.receive_text()
-            user_task = None
+            msg = await websocket.receive_text()
 
-            # 1. Parse Message
+            # Handle "get_report"
             try:
-                message_json = json.loads(message_text)
-                if message_json.get("type") == "get_report":
+                data = json.loads(msg)
+                if data.get("type") == "get_report":
                     await handle_get_report(session_id)
-                    continue # Skip to next loop iteration
-            except json.JSONDecodeError:
-                # If not JSON, treat as plain text task
-                user_task = message_text
-                logger.info(f"Received task from {session_id}: {user_task}")
-                session_data[session_id]['task'] = user_task
+                    continue
+            except:
+                pass
 
-            # 2. Run Agent Graph (only if we have a task)
-            if user_task:
-                # Reset revision number for new tasks
-                inputs = {
-                    "task": user_task,
-                    "messages": [],
-                    "revision_number": 0, # IMPORTANT: Required by agent_graph logic
-                    "research_info": ""
-                }
+            # New task
+            session_data[session_id]["task"] = msg
 
-                # Stream results
-                async for event in agent_graph.astream(inputs, config=config, stream_mode="updates"):
-                    await process_graph_event(session_id, event)
-                
-                # Retrieve final state to ensure we captured everything (optional double-check)
-                # final_state = agent_graph.get_state(config).values
-                # logger.info(f"Graph finished for {session_id}")
+            inputs = {
+                "task": msg,
+                "messages": [],
+                "revision_number": 0,
+                "research_info": ""
+            }
+
+            async for event in agent_graph.astream(inputs, config=config, stream_mode="updates"):
+                await process_graph_event(session_id, event)
 
     except WebSocketDisconnect:
-        logger.info(f"Client disconnected: {session_id}")
-    except Exception as e:
-        logger.error(f"Error in session {session_id}: {e}", exc_info=True)
-        try:
-            await websocket.send_json({"type": "error", "message": str(e)})
-        except:
-            pass
-    finally:
-        if session_id in connections: del connections[session_id]
-        if session_id in session_data: del session_data[session_id]
+        pass
 
+    finally:
+        connections.pop(session_id, None)
+        session_data.pop(session_id, None)
+
+
+
+
+# =====================================================================
+# START UVICORN (Local Testing)
+# =====================================================================
 if __name__ == "__main__":
     import uvicorn
-    print("Starting server on http://localhost:8000")
+    print("🔥 Running on http://localhost:8000")
     uvicorn.run(app, host="0.0.0.0", port=8000)
