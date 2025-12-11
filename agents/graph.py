@@ -2,14 +2,14 @@ import os
 from typing import TypedDict, Annotated, Literal
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents.agent_executor import AgentExecutor, create_tool_calling_agent
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from dotenv import load_dotenv
 
 # --- FIX: Relative import because Tools.py is in the same folder ---
-from .tools import web_search
-from .tools import pdf_search
+from agents.tools import web_search
+from agents.tools import pdf_search
 
 load_dotenv()
 
