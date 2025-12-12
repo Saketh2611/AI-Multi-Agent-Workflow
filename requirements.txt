@@ -1,11 +1,13 @@
 fastapi
 uvicorn[standard]
 python-dotenv
-langchain>=0.2.16          
-langchain-community>=0.2.16
-langchain-google-genai
-langchain-text-splitters
-langgraph
+# PIN THESE EXACT VERSIONS to prevent v0.3 breaking changes
+langchain==0.2.16
+langchain-community==0.2.16
+langchain-google-genai==1.0.10
+langchain-text-splitters==0.2.4
+langgraph==0.2.16
+# Tools
 tavily-python
 duckduckgo-search
 faiss-cpu
