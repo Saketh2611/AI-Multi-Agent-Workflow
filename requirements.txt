@@ -1,28 +1,16 @@
 fastapi
 uvicorn[standard]
 python-dotenv
-
-# LangChain + Google Gemini
-langchain
+langchain>=0.2.16          
+langchain-community>=0.2.16
 langchain-google-genai
-langchain-community
-
-# Agents / Graphs
+langchain-text-splitters
 langgraph
-
-# Web search tools
-langchain-tavily
+tavily-python
 duckduckgo-search
-aiohttp
-beautifulsoup4
-
-# Vector database + Embeddings
 faiss-cpu
 numpy
-
-# PDF processing
-PyPDF2
-langchain-text-splitters
-
-# Optional: If using Postgres / Neon
+pypdf
 psycopg2-binary
+aiohttp
+beautifulsoup4
