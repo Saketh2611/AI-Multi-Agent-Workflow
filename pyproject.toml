@@ -1,0 +1,27 @@
+[project]
+name = "ai-multi-agent-workflow"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.13.4",
+    "beautifulsoup4>=4.14.3",
+    "duckduckgo-search>=8.1.1",
+    "e2b-code-interpreter>=2.6.0",
+    "faiss-cpu>=1.13.2",
+    "fastapi>=0.135.2",
+    "langchain==1.2.13",
+    "langchain-community==0.4.1",
+    "langchain-google-genai==4.2.1",
+    "langchain-text-splitters==1.1.1",
+    "langgraph==1.1.3",
+    "langgraph-prebuilt>=1.0.8",
+    "numpy>=2.4.4",
+    "psycopg2-binary>=2.9.11",
+    "PyPDF2>=3.0.1",
+    "python-dotenv>=1.2.2",
+    "python-multipart>=0.0.22",
+    "tavily-python>=0.7.23",
+    "uvicorn[standard]>=0.42.0",
+]
