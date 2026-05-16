@@ -72,7 +72,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         chunks = splitter.split_text(text)
 
-        embedder = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        embedder = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
 
         ids, vectors, metadatas = [], [], []
         for chunk in chunks:
