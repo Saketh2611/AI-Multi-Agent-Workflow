@@ -6,15 +6,18 @@ import textwrap
 from typing import TypedDict, Annotated, Literal
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain.agents import create_agent
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from dotenv import load_dotenv
-
+import logging
 from agents.tools import web_search, pdf_search
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
 
@@ -105,11 +108,7 @@ class AgentState(TypedDict):
 # 3. MODEL
 # ─────────────────────────────────────────────────────────────
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0,
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-)
+llm = ChatOllama(model="qwen2.5:1.5b",temperature=0)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -198,11 +197,12 @@ async def planner_node(state: AgentState):
         "task": state["task"],
         "research_info": state.get("research_info", "None yet"),
     })
+    logger.info(f"Planner revision: {state.get('revision_number', 0) + 1}")
     return {
         "plan": result.content,
         "revision_number": state.get("revision_number", 0) + 1,
     }
-
+    
 
 async def researcher_node(state: AgentState):
     result = await researcher_agent.ainvoke({

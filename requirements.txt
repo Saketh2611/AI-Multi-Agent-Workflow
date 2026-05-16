@@ -17,3 +17,4 @@ psycopg2-binary>=2.9.11
 aiohttp>=3.13.4
 beautifulsoup4>=4.14.3
 e2b-code-interpreter>=2.6.0
+ollama>=0.1.0
