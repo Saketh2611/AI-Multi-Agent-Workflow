@@ -199,7 +199,7 @@ async def pdf_search(query: str):
 
     try:
         # Use Google GenAI Embeddings
-        embedder = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        embedder = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
         
         # FIX: Await the async version of embed_query
         q_emb = await embedder.aembed_query(query)
