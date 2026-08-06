@@ -3,6 +3,8 @@ from langchain_core.tools import tool
 import os
 import json
 from typing import List, Dict, Optional
+import logging
+logger = logging.getLogger(__name__)
 
 # PDF + Embeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -58,6 +60,7 @@ def web_search(query: str):
     try:
         search_tool = TavilySearchResults(max_results=3)
         results = search_tool.invoke({"query": query})
+        logger.info(f"Web search results: {results}")
 
         output = []
         for res in results:
